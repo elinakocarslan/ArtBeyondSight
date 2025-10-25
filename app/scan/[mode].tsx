@@ -46,6 +46,8 @@ export default function ScanScreen() {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
+
+        
       Alert.alert('Permission required', 'Camera access is required to take a photo.');
       return;
     }
