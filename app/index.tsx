@@ -2,7 +2,8 @@ import ModeButton from '@/components/mode-button';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 
 export default function Home() {
   const router = useRouter();
@@ -12,38 +13,55 @@ export default function Home() {
     router.push((`/scan/${mode}` as unknown) as any);
   };
 
+  const { width } = Dimensions.get('window');
+  // Responsive tile width: 3 columns on wide screens, 2 on medium, 1 on small
+  let cols = 3;
+  if (width < 760) cols = 2;
+  if (width < 420) cols = 1;
+  // compute columns and title size for responsiveness
+  const titleSize = width > 900 ? 64 : width > 600 ? 48 : 34;
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title} accessibilityRole="header">ArtBeyondSight</Text>
+      <View style={styles.bgDecor} pointerEvents="none">
+        <View style={styles.glowLeft} />
+        <View style={styles.glowRight} />
+      </View>
+
+      <View style={styles.container}>
+        <Text style={[styles.title, { fontSize: titleSize }]} accessibilityRole="header">ArtBeyondSight</Text>
         <Text style={styles.subtitle}>Experience art and landmarks through music and narration</Text>
 
-        <View style={styles.row}>
+        <View style={[styles.rowTop, cols === 1 ? styles.colStack : null]}>
           <ModeButton
             label="Museum"
-            subtitle="Paintings & Galleries"
-            color="#3B82F6"
+            subtitle="Paintings & Artworks"
+            color="#2563EB"
             iconName="palette"
+            iconSize={56}
+            style={{ width: '92%', height: 110, borderRadius: 14 }}
             accessibilityLabel="Open Museum mode"
             onPress={() => openMode('museum')}
           />
 
           <ModeButton
             label="Monuments"
-            subtitle="Landmarks & Statues"
-            color="#A0522D"
-            iconName="landscape"
+            subtitle="Historic Landmarks"
+            color="#B45309"
+            iconName="account-balance"
+            iconSize={56}
+            style={{ width: '92%', height: 110, borderRadius: 14 }}
             accessibilityLabel="Open Monuments mode"
             onPress={() => openMode('monuments')}
           />
-        </View>
 
-        <View style={styles.rowCenter}>
           <ModeButton
             label="Landscape"
-            subtitle="Nature & Scenery"
-            color="#16A34A"
+            subtitle="Natural Scenes"
+            color="#059669"
             iconName="terrain"
+            iconSize={56}
+            style={{ width: '92%', height: 110, borderRadius: 14 }}
             accessibilityLabel="Open Landscape mode"
             onPress={() => openMode('landscape')}
           />

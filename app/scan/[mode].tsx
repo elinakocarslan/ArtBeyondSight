@@ -4,12 +4,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator, Alert,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator, Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function ScanScreen() {
@@ -19,6 +19,8 @@ export default function ScanScreen() {
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // no pulsing animation — simplified capture UI
 
   const modeColor =
     mode === 'museum' ? '#3B82F6' :
@@ -47,7 +49,7 @@ export default function ScanScreen() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
 
-        
+
       Alert.alert('Permission required', 'Camera access is required to take a photo.');
       return;
     }
@@ -78,11 +80,12 @@ export default function ScanScreen() {
 
   return (
     <View style={styles.container}>
+      {/* hint removed - UI simplified to focus on the capture button */}
       {/* Preview Section */}
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={styles.preview} />
       ) : (
-        <View style={[styles.placeholder, { borderColor: modeColor }]}>
+        <View pointerEvents="box-none" style={[styles.placeholder, { borderColor: modeColor }]}>
           <Text style={styles.placeholderText}>No image selected</Text>
         </View>
       )}
@@ -100,23 +103,26 @@ export default function ScanScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Open image gallery"
-          style={styles.secondaryButton}
+          style={[styles.secondaryButton, { borderWidth: 2, borderColor: modeColor }]}
           onPress={pickImage}
         >
           <MaterialIcons name="photo-library" size={28} color="#fff" />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Take a photo"
-          style={[styles.captureButton, { borderColor: modeColor }]}
-          onPress={takePhoto}
-        />
+        <View style={styles.captureWrap}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Take a photo"
+            style={[styles.captureButton, { borderColor: modeColor }]}
+            onPress={takePhoto}
+          />
+          <Text style={styles.captureLabel}>Tap to capture</Text>
+        </View>
 
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Back to home"
-          style={styles.secondaryButton}
+          style={[styles.secondaryButton, { borderWidth: 2, borderColor: modeColor }]}
           onPress={() => router.replace('/')}
         >
           <MaterialIcons name="home" size={28} color="#fff" />
@@ -140,30 +146,43 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   preview: { flex: 1, width: '100%', resizeMode: 'contain' },
   placeholder: {
-    flex: 1,
-    margin: 20,
+    // occupy a centered area and visually overlay the controls so its dashed border sits above the buttons
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    right: 20,
+    bottom: 170,
     borderWidth: 2,
     borderStyle: 'dashed',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 30,
+    elevation: 30,
+    backgroundColor: 'transparent',
   },
   placeholderText: { color: '#aaa', fontSize: 18 },
   controls: {
-    height: 100,
+    height: 120,
     backgroundColor: '#000',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     padding: 12,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 28, // lift controls a bit above the very bottom
+    zIndex: 0,
   },
   secondaryButton: {
     width: 56,
     height: 56,
-    borderRadius: 12,
+    borderRadius: 28,
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 0,
   },
   captureButton: {
     width: 84,
@@ -171,10 +190,24 @@ const styles = StyleSheet.create({
     borderRadius: 42,
     borderWidth: 6,
     backgroundColor: '#fff',
+    zIndex: 0,
   },
+  captureWrap: {
+    width: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  /* pulse removed */
+  captureLabel: {
+    marginTop: 8,
+    color: '#fff',
+    fontSize: 13,
+  },
+  /* hint removed */
   analyzeButton: {
     alignSelf: 'center',
-    marginBottom: 30,
+    marginBottom: 160,
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 12,
