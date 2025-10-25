@@ -2,7 +2,7 @@ import ModeButton from '@/components/mode-button';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
 export default function Home() {
@@ -28,11 +28,11 @@ export default function Home() {
         <View style={styles.glowRight} />
       </View>
 
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={[styles.title, { fontSize: titleSize }]} accessibilityRole="header">ArtBeyondSight</Text>
         <Text style={styles.subtitle}>Experience art and landmarks through music and narration</Text>
 
-        <View style={[styles.rowTop, cols === 1 ? styles.colStack : null]}>
+  <View style={[styles.rowTop, cols === 1 ? styles.colStack : null]}>
           <ModeButton
             label="Museum"
             subtitle="Paintings & Artworks"
@@ -84,6 +84,20 @@ export default function Home() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
   container: { padding: 24, alignItems: 'center', gap: 16 },
+  // layout for the mode buttons row
+  rowTop: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+    alignItems: 'center',
+  },
+  colStack: { flexDirection: 'column' },
+  // decorative background glows
+  bgDecor: { position: 'absolute', top: 0, left: 0, right: 0, height: 220, pointerEvents: 'none' },
+  glowLeft: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(37,99,235,0.06)', left: -80, top: -60 },
+  glowRight: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(5,150,105,0.06)', right: -80, top: -40 },
   title: { fontSize: 34, fontWeight: '800', color: '#111', marginTop: 8 },
   subtitle: { fontSize: 16, color: '#333', marginBottom: 20, textAlign: 'center' },
   row: { flexDirection: 'row' },
