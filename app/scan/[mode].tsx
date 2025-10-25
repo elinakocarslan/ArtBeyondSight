@@ -1,15 +1,17 @@
+// app/scan/[mode].tsx
 import { analyzeImage } from '@/utils/analyzeImage';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator, Alert,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator, 
+    Alert,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function ScanScreen() {
@@ -19,6 +21,7 @@ export default function ScanScreen() {
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progressMessage, setProgressMessage] = useState('');
 
   // no pulsing animation — simplified capture UI
 
@@ -44,12 +47,10 @@ export default function ScanScreen() {
     }
   };
 
-  // 📷 Take a photo with the device camera (uses native camera UI)
+  // 📷 Take a photo with the device camera
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-
-
       Alert.alert('Permission required', 'Camera access is required to take a photo.');
       return;
     }
@@ -58,7 +59,6 @@ export default function ScanScreen() {
     if (!result.canceled && result.assets?.length > 0) {
       setImageUri(result.assets[0].uri);
     } else if ((result as any).uri) {
-      // older shape
       setImageUri((result as any).uri);
     }
   };
@@ -66,15 +66,45 @@ export default function ScanScreen() {
   // 🧠 Analyze the selected image
   const handleAnalyze = async () => {
     if (!imageUri) return;
+    
     try {
       setIsProcessing(true);
+      
+      if (mode === 'museum') {
+        // Museum mode has multiple steps
+        setProgressMessage('Converting image...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setProgressMessage('Getting painting metadata...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setProgressMessage('Analyzing historical context...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setProgressMessage('Creating immersive description...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setProgressMessage('Generating music (this may take 1-2 minutes)...');
+      } else {
+        setProgressMessage('Analyzing image...');
+      }
+      
       const result = await analyzeImage(imageUri, mode);
+      
+      setProgressMessage('Analysis complete!');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       router.push({ pathname: '/result', params: { ...result, mode } } as any);
+      
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to analyze image.');
+      console.error('Analysis error:', error);
+      Alert.alert(
+        'Analysis Failed', 
+        error instanceof Error ? error.message : 'Failed to analyze image. Please try again.'
+      );
     } finally {
       setIsProcessing(false);
+      setProgressMessage('');
     }
   };
 
@@ -85,16 +115,36 @@ export default function ScanScreen() {
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={styles.preview} />
       ) : (
-        <View pointerEvents="box-none" style={[styles.placeholder, { borderColor: modeColor }]}>
+        <View style={[styles.placeholder, { borderColor: modeColor }]}>
+          <MaterialIcons name="image" size={80} color={modeColor} />
           <Text style={styles.placeholderText}>No image selected</Text>
+          <Text style={styles.placeholderSubtext}>
+            {mode === 'museum' ? 'Select a painting or artwork' :
+             mode === 'monuments' ? 'Select a monument or landmark' :
+             'Select a landscape or nature scene'}
+          </Text>
         </View>
       )}
 
       {/* Loader Overlay */}
       {isProcessing && (
         <View style={styles.loaderOverlay} accessible accessibilityLiveRegion="polite">
-          <ActivityIndicator size="large" color={modeColor} />
-          <Text style={styles.loaderText}>Analyzing image...</Text>
+          <View style={styles.loaderCard}>
+            <ActivityIndicator size="large" color={modeColor} />
+            <Text style={styles.loaderTitle}>
+              {mode === 'museum' ? 'Analyzing Artwork' :
+               mode === 'monuments' ? 'Analyzing Monument' :
+               'Analyzing Landscape'}
+            </Text>
+            {progressMessage && (
+              <Text style={styles.loaderText}>{progressMessage}</Text>
+            )}
+            {mode === 'museum' && progressMessage.includes('music') && (
+              <Text style={styles.loaderSubtext}>
+                Generating unique music based on the artwork's mood...
+              </Text>
+            )}
+          </View>
         </View>
       )}
 
@@ -105,6 +155,7 @@ export default function ScanScreen() {
           accessibilityLabel="Open image gallery"
           style={[styles.secondaryButton, { borderWidth: 2, borderColor: modeColor }]}
           onPress={pickImage}
+          disabled={isProcessing}
         >
           <MaterialIcons name="photo-library" size={28} color="#fff" />
         </TouchableOpacity>
@@ -115,7 +166,8 @@ export default function ScanScreen() {
             accessibilityLabel="Take a photo"
             style={[styles.captureButton, { borderColor: modeColor }]}
             onPress={takePhoto}
-          />
+            disabled={isProcessing}
+        />
           <Text style={styles.captureLabel}>Tap to capture</Text>
         </View>
 
@@ -124,6 +176,7 @@ export default function ScanScreen() {
           accessibilityLabel="Back to home"
           style={[styles.secondaryButton, { borderWidth: 2, borderColor: modeColor }]}
           onPress={() => router.replace('/')}
+          disabled={isProcessing}
         >
           <MaterialIcons name="home" size={28} color="#fff" />
         </TouchableOpacity>
@@ -135,6 +188,7 @@ export default function ScanScreen() {
           style={[styles.analyzeButton, { backgroundColor: modeColor }]}
           onPress={handleAnalyze}
         >
+          <MaterialIcons name="auto-awesome" size={24} color="#fff" style={{ marginRight: 8 }} />
           <Text style={styles.analyzeText}>Analyze Image</Text>
         </TouchableOpacity>
       )}
@@ -143,8 +197,15 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  preview: { flex: 1, width: '100%', resizeMode: 'contain' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#000' 
+  },
+  preview: { 
+    flex: 1, 
+    width: '100%', 
+    resizeMode: 'contain' 
+  },
   placeholder: {
     // occupy a centered area and visually overlay the controls so its dashed border sits above the buttons
     position: 'absolute',
@@ -161,7 +222,19 @@ const styles = StyleSheet.create({
     elevation: 30,
     backgroundColor: 'transparent',
   },
-  placeholderText: { color: '#aaa', fontSize: 18 },
+  placeholderText: { 
+    color: '#fff', 
+    fontSize: 20, 
+    marginTop: 16, 
+    fontWeight: '600' 
+  },
+  placeholderSubtext: { 
+    color: '#aaa', 
+    fontSize: 14, 
+    marginTop: 8, 
+    textAlign: 'center', 
+    paddingHorizontal: 40 
+  },
   controls: {
     height: 120,
     backgroundColor: '#000',
@@ -211,6 +284,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   analyzeText: {
     color: '#fff',
@@ -219,10 +294,38 @@ const styles = StyleSheet.create({
   },
   loaderOverlay: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loaderText: { color: '#fff', marginTop: 12, fontSize: 18 },
+  loaderCard: {
+    backgroundColor: '#111',
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    maxWidth: '85%',
+  },
+  loaderTitle: { 
+    color: '#fff', 
+    marginTop: 16, 
+    fontSize: 20, 
+    fontWeight: '700' 
+  },
+  loaderText: { 
+    color: '#aaa', 
+    marginTop: 12, 
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  loaderSubtext: {
+    color: '#666',
+    marginTop: 8,
+    fontSize: 13,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
 });

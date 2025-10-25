@@ -1,82 +1,139 @@
-import { ArtBeyondSightAPI, ImageAnalysisData } from './api';
+// utils/analyzeImage.ts
+// Updated to use Navigator API and save to database
 
-/**
- * Placeholder analyzer for captured/selected images.
- * Returns a mocked recognition result after a short delay.
- * Replace with real API integration (Suno for audio generation + Vision API or custom ML model).
- */
-export type AnalysisResult = {
+import { analyzeMuseumImage, MuseumAnalysisResult } from './analyzeImageWithNavigator';
+import { ArtBeyondSightAPI } from './api';
+
+export interface AnalyzeImageResult {
   imageUri: string;
   title: string;
-  artist?: string;
-  type?: string;
+  artist: string;
+  type: string;
   description: string;
-  emotions: string[]; // color-coded tags
-  audioUri?: string; // optional preloaded audio fallback
-  analysisId?: string; // ID from the database
-};
-
-export async function analyzeImage(imageUri: string, mode: 'museum' | 'monuments' | 'landscape'): Promise<AnalysisResult> {
-  // Simulate processing time
-  await new Promise((res) => setTimeout(res, 1800));
-
-  let mockResult: AnalysisResult;
-
-  // Mock results depending on mode
-  if (mode === 'museum') {
-    mockResult = {
-      imageUri,
-      title: 'Starry Night (demo)',
-      artist: 'Vincent van Gogh',
-      type: 'Post-Impressionism',
-      description: 'A swirling night sky above a small town; emotions: wonder and longing.',
-      emotions: ['calm', 'dreamy'],
-      audioUri: undefined,
-    };
-  } else if (mode === 'monuments') {
-    mockResult = {
-      imageUri,
-      title: 'Eiffel Tower (demo)',
-      artist: 'Gustave Eiffel (engineer)',
-      type: 'Monument',
-      description: 'A wrought-iron lattice tower in Paris; evokes romance and grandeur.',
-      emotions: ['romantic', 'majestic'],
-      audioUri: undefined,
-    };
-  } else {
-    // landscape
-    mockResult = {
-      imageUri,
-      title: 'Rolling Hills (demo)',
-      type: 'Landscape',
-      description: 'A peaceful green panorama; evokes calm and serenity.',
-      emotions: ['calm', 'serene'],
-      audioUri: undefined,
-    };
-  }
-
-  // 🔥 NEW: Save analysis results to database
-  try {
-    const analysisData: ImageAnalysisData = {
-      image_name: mockResult.title,
-      analysis_type: mode,
-      descriptions: [mockResult.description],
-      metadata: {
-        artist: mockResult.artist,
-        type: mockResult.type,
-        emotions: mockResult.emotions,
-        imageUri: mockResult.imageUri
-      }
-    };
-
-    const savedAnalysis = await ArtBeyondSightAPI.submitImageAnalysis(analysisData);
-    mockResult.analysisId = savedAnalysis.id;
-    
-    console.log('✅ Analysis saved to database with ID:', savedAnalysis.id);
-  } catch (error) {
-    console.error('❌ Failed to save analysis to database:', error);
-    // Continue without database save - app still works offline
-  }
-
-  return mockResult;
+  emotions: string[];
+  audioUri: string | null;
+  analysisId?: string; // Database ID after saving
 }
+
+/**
+ * Main function to analyze images based on mode
+ * Currently supports: museum, monuments, landscape
+ */
+export async function analyzeImage(
+  imageUri: string,
+  mode: 'museum' | 'monuments' | 'landscape'
+): Promise<AnalyzeImageResult> {
+  
+  console.log(`🎯 Starting ${mode} analysis...`);
+
+  try {
+    if (mode === 'museum') {
+      return await analyzeMuseumMode(imageUri);
+    } else if (mode === 'monuments') {
+      return await analyzeMonumentsMode(imageUri);
+    } else if (mode === 'landscape') {
+      return await analyzeLandscapeMode(imageUri);
+    } else {
+      throw new Error(`Unsupported mode: ${mode}`);
+    }
+  } catch (error) {
+    console.error(`❌ Analysis failed for ${mode} mode:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Museum Mode: Full Navigator AI + Suno integration
+ */
+async function analyzeMuseumMode(imageUri: string): Promise<AnalyzeImageResult> {
+  try {
+    console.log('🎨 Museum Mode: Starting Navigator AI analysis...');
+
+    // Step 1: Analyze with Navigator AI and generate music with Suno
+    const analysisResult: MuseumAnalysisResult = await analyzeMuseumImage(imageUri);
+
+    // Step 2: Save to database
+    console.log('💾 Saving analysis to database...');
+    const savedData = await ArtBeyondSightAPI.saveMuseumAnalysis(analysisResult);
+
+    // Step 3: Format for ResultScreen
+    const result: AnalyzeImageResult = {
+      imageUri: analysisResult.imageUri,
+      title: analysisResult.paintingName,
+      artist: analysisResult.artist,
+      type: analysisResult.genre,
+      description: analysisResult.historicalPrompt,
+      emotions: extractEmotions(analysisResult.immersivePrompt),
+      audioUri: analysisResult.audioUri,
+      analysisId: savedData.id,
+    };
+
+    console.log('✅ Museum analysis complete and saved!');
+    return result;
+
+  } catch (error) {
+    console.error('❌ Museum mode analysis failed:', error);
+    throw new Error(`Museum analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Monuments Mode: Placeholder (you can implement similar logic)
+ */
+async function analyzeMonumentsMode(imageUri: string): Promise<AnalyzeImageResult> {
+  console.log('🗿 Monuments Mode: Using fallback analysis...');
+  
+  // TODO: Implement monuments-specific analysis
+  // For now, return mock data
+  return {
+    imageUri,
+    title: 'Monument Placeholder',
+    artist: 'Unknown',
+    type: 'Monument',
+    description: 'This is a placeholder for monument analysis. Implement Navigator AI analysis for monuments mode.',
+    emotions: ['historical', 'grand', 'majestic'],
+    audioUri: null,
+  };
+}
+
+/**
+ * Landscape Mode: Placeholder (you can implement similar logic)
+ */
+async function analyzeLandscapeMode(imageUri: string): Promise<AnalyzeImageResult> {
+  console.log('🌄 Landscape Mode: Using fallback analysis...');
+  
+  // TODO: Implement landscape-specific analysis
+  // For now, return mock data
+  return {
+    imageUri,
+    title: 'Landscape Placeholder',
+    artist: 'Nature',
+    type: 'Landscape',
+    description: 'This is a placeholder for landscape analysis. Implement Navigator AI analysis for landscape mode.',
+    emotions: ['peaceful', 'serene', 'natural'],
+    audioUri: null,
+  };
+}
+
+/**
+ * Helper: Extract emotion keywords from immersive description
+ */
+function extractEmotions(immersivePrompt: string): string[] {
+  const emotionKeywords = [
+    'calm', 'dreamy', 'melancholy', 'energetic', 'mysterious', 
+    'romantic', 'joyful', 'somber', 'dramatic', 'peaceful',
+    'intense', 'serene', 'vibrant', 'haunting', 'ethereal'
+  ];
+
+  const text = immersivePrompt.toLowerCase();
+  const foundEmotions = emotionKeywords.filter(emotion => 
+    text.includes(emotion)
+  );
+
+  // Return found emotions or default ones
+  return foundEmotions.length > 0 
+    ? foundEmotions.slice(0, 3) 
+    : ['artistic', 'expressive', 'captivating'];
+}
+
+export default analyzeImage;

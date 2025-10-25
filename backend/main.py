@@ -19,6 +19,8 @@ uri = f"mongodb+srv://elinakocarslan_db_user:{mongodb_password}@gallery.adiobn2.
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client["sight_data"]
 collection = db["artifacts"]
+doc = collection.find_one()
+print("Doc", doc)
 
 # Pydantic Models for API validation
 class ImageAnalysisRequest(BaseModel):
