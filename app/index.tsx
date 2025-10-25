@@ -1,7 +1,8 @@
 import ModeButton from '@/components/mode-button';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function Home() {
   const router = useRouter();
@@ -47,6 +48,16 @@ export default function Home() {
             onPress={() => openMode('landscape')}
           />
         </View>
+
+        {/* History Button */}
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => router.push('/history' as any)}
+          accessibilityLabel="View analysis history"
+        >
+          <MaterialIcons name="history" size={24} color="#fff" />
+          <Text style={styles.historyText}>View History</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -59,4 +70,19 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#333', marginBottom: 20, textAlign: 'center' },
   row: { flexDirection: 'row' },
   rowCenter: { flexDirection: 'row', justifyContent: 'center' },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#666',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+    gap: 8,
+  },
+  historyText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
