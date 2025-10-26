@@ -3,7 +3,7 @@ import { Audio } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { speakWithUnrealSpeech, stopUnrealSpeech } from './unrealSpeech';
 
 export default function ResultScreen() {
@@ -118,9 +118,8 @@ export default function ResultScreen() {
     }
   };
 
-  const onSave = () => {
-    AccessibilityInfo.announceForAccessibility('Saved to your favorites');
-    // TODO: persist to local storage or cloud
+  const onTakeAnother = () => {
+    router.push(('/scan/museum' as unknown) as any);
   };
 
   const onBackToHome = async () => {
@@ -150,7 +149,7 @@ export default function ResultScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} accessible accessibilityRole="summary">
+    <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerCard}>
         {imageUri ? (
           <View style={styles.imageWrap}>
@@ -160,11 +159,50 @@ export default function ResultScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        {artist ? <Text style={styles.artist}>by {artist}</Text> : null}
-        {type ? <Text style={styles.type}>{type}</Text> : null}
+        <Text 
+          style={styles.title}
+          accessibilityRole="header"
+          accessibilityLabel={`Artwork title: ${title}`}
+        >
+          {title}
+        </Text>
+        {artist ? (
+          <Text 
+            style={styles.artist}
+            accessibilityLabel={`Artist: ${artist}`}
+          >
+            by {artist}
+          </Text>
+        ) : null}
+        {type ? (
+          <Text 
+            style={styles.type}
+            accessibilityLabel={`Artwork type: ${type}`}
+          >
+            {type}
+          </Text>
+        ) : null}
 
-        <View style={styles.pillsRow}>
+        <View 
+          style={styles.pillsRow}
+          accessible={true}
+          accessibilityRole="text"
+          accessibilityLabel={`Emotions: ${(() => {
+            const raw = emotions as any;
+            let list: string[] = [];
+            if (Array.isArray(raw)) list = raw;
+            else if (typeof raw === 'string') {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) list = parsed.map(String);
+                else list = [raw];
+              } catch {
+                list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+              }
+            }
+            return list.join(', ');
+          })()}`}
+        >
           {(() => {
             // normalize emotions which may arrive as an array or a serialized string from router params
             const raw = emotions as any;
@@ -189,11 +227,19 @@ export default function ResultScreen() {
         </View>
 
         <View style={styles.audioCard}>
-          <Text style={styles.sectionTitleLight}>Audio Experience</Text>
+          <Text 
+            style={styles.sectionTitleLight}
+            accessibilityRole="header"
+          >
+            Audio Experience
+          </Text>
           {audioUri && (
             <View style={styles.musicStatus}>
               <MaterialIcons name="music-note" size={18} color="#9CA3AF" />
-              <Text style={styles.musicStatusText}>
+              <Text 
+                style={styles.musicStatusText}
+                accessibilityLabel={isPlayingMusic ? 'Background music is currently playing' : 'Background music has finished playing'}
+              >
                 {isPlayingMusic ? '🎵 Music playing...' : '🎵 Music auto-played'}
               </Text>
             </View>
@@ -202,7 +248,8 @@ export default function ResultScreen() {
             <TouchableOpacity
               style={styles.audioButtonPrimary}
               accessibilityRole="button"
-              accessibilityLabel={isPlayingHistorical ? "Pause historical description" : "Read historical description aloud"}
+              accessibilityLabel={isPlayingHistorical ? "Pause" : "Historical description"}
+              accessibilityHint={isPlayingHistorical ? "Double tap to pause the historical description" : "Double tap to hear a historical perspective of this artwork"}
               onPress={onReadHistoricalDescription}
             >
               <MaterialIcons
@@ -218,7 +265,8 @@ export default function ResultScreen() {
             <TouchableOpacity
               style={styles.audioButtonSecondary}
               accessibilityRole="button"
-              accessibilityLabel={isPlayingImmersive ? "Pause immersive description" : "Read immersive description aloud"}
+              accessibilityLabel={isPlayingImmersive ? "Pause" : "Immersive description"}
+              accessibilityHint={isPlayingImmersive ? "Double tap to pause the immersive description" : "Double tap to hear an immersive, sensory perspective of this artwork"}
               onPress={onReadImmersiveDescription}
             >
               <MaterialIcons
@@ -241,7 +289,8 @@ export default function ResultScreen() {
                 style={styles.transcriptToggle}
                 onPress={() => setShowHistoricalTranscript(!showHistoricalTranscript)}
                 accessibilityRole="button"
-                accessibilityLabel="Toggle transcript visibility"
+                accessibilityLabel="Transcript"
+                accessibilityHint="Double tap to collapse the text transcript"
               >
                 <Text style={styles.transcriptTitle}>Transcript</Text>
                 <MaterialIcons 
@@ -250,7 +299,10 @@ export default function ResultScreen() {
                   color="#fff" 
                 />
               </TouchableOpacity>
-              <Text style={styles.transcriptText} accessible={false}>
+              <Text 
+                style={styles.transcriptText}
+                accessibilityLabel={`Transcript: ${historicalPrompt || description}`}
+              >
                 {historicalPrompt || description}
               </Text>
             </View>
@@ -258,12 +310,22 @@ export default function ResultScreen() {
         </View>
 
         <View style={styles.rowActions}>
-          <TouchableOpacity style={styles.actionButton} accessibilityRole="button" onPress={onSave}>
-            <MaterialIcons name="bookmark" size={20} color="#fff" />
-            <Text style={styles.actionText}>Save</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionButtonOutline} accessibilityRole="button" onPress={onBackToHome}>
+            <TouchableOpacity 
+              style={styles.actionButton} 
+              accessibilityRole="button"
+              accessibilityLabel="Take another picture"
+              accessibilityHint="Double tap to return to camera to scan another artwork"
+              onPress={onTakeAnother}
+            >
+              <MaterialIcons name="photo-camera" size={20} color="#fff" />
+              <Text style={styles.actionText}>Take Another Picture</Text>
+            </TouchableOpacity>          <TouchableOpacity 
+            style={styles.actionButtonOutline} 
+            accessibilityRole="button"
+            accessibilityLabel="Back to home"
+            accessibilityHint="Double tap to return to the home screen"
+            onPress={onBackToHome}
+          >
             <Text style={styles.actionTextOutline}>Back to Home</Text>
           </TouchableOpacity>
         </View>

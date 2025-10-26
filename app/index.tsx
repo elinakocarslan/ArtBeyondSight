@@ -1,14 +1,43 @@
 import ModeButton from '@/components/mode-button';
+import OnboardingModal from '@/components/onboarding-modal';
 import VOPressable from '@/components/vo-pressable';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // decorative icons removed from this screen
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+const ONBOARDING_KEY = '@app_onboarding_completed';
 
 export default function Home() {
   const router = useRouter();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    checkOnboarding();
+  }, []);
+
+  const checkOnboarding = async () => {
+    try {
+      const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
+      if (!completed) {
+        setShowOnboarding(true);
+      }
+    } catch (error) {
+      console.warn('Error checking onboarding status:', error);
+    }
+  };
+
+  const handleCloseOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      setShowOnboarding(false);
+    } catch (error) {
+      console.warn('Error saving onboarding status:', error);
+      setShowOnboarding(false);
+    }
+  };
 
   const openMode = (mode: 'museum' | 'monuments' | 'landscape') => {
     // cast to any because expo-router expects specific typed routes in this project
@@ -25,6 +54,8 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <OnboardingModal visible={showOnboarding} onClose={handleCloseOnboarding} />
+      
       <View style={styles.bgDecor} pointerEvents="none">
         <View style={styles.glowLeft} />
         <View style={styles.glowRight} />
