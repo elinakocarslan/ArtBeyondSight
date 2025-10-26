@@ -1,8 +1,8 @@
 import ModeButton from '@/components/mode-button';
-import { MaterialIcons } from '@expo/vector-icons';
+// decorative icons removed from this screen
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 
 export default function Home() {
@@ -30,7 +30,12 @@ export default function Home() {
 
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={[styles.title, { fontSize: titleSize }]} accessibilityRole="header">ArtBeyondSight</Text>
-        <Text style={styles.subtitle}>Experience art and landmarks through music and narration</Text>
+        <Text style={styles.subtitle}>Turning Art into Music</Text>
+
+        <View style={styles.taglineRow} pointerEvents="none">
+          <Text style={styles.taglineIcon}>♪</Text>
+          <Text style={styles.taglineText}>Accessible • Inclusive • Immersive</Text>
+        </View>
 
   <View style={[styles.rowTop, cols === 1 ? styles.colStack : null]}>
           <ModeButton
@@ -67,22 +72,14 @@ export default function Home() {
           />
         </View>
 
-        {/* History Button */}
-        <TouchableOpacity
-          style={styles.historyButton}
-          onPress={() => router.push('/history' as any)}
-          accessibilityLabel="View analysis history"
-        >
-          <MaterialIcons name="history" size={24} color="#fff" />
-          <Text style={styles.historyText}>View History</Text>
-        </TouchableOpacity>
+        {/* History Button removed */}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
+  safe: { flex: 1, backgroundColor: '#071026' },
   container: { padding: 24, alignItems: 'center', gap: 16 },
   // layout for the mode buttons row
   rowTop: {
@@ -95,26 +92,15 @@ const styles = StyleSheet.create({
   },
   colStack: { flexDirection: 'column' },
   // decorative background glows
-  bgDecor: { position: 'absolute', top: 0, left: 0, right: 0, height: 220, pointerEvents: 'none' },
-  glowLeft: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(37,99,235,0.06)', left: -80, top: -60 },
-  glowRight: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(5,150,105,0.06)', right: -80, top: -40 },
-  title: { fontSize: 34, fontWeight: '800', color: '#111', marginTop: 8 },
-  subtitle: { fontSize: 16, color: '#333', marginBottom: 20, textAlign: 'center' },
+  bgDecor: { position: 'absolute', top: 0, left: 0, right: 0, height: 300, pointerEvents: 'none' },
+  glowLeft: { position: 'absolute', width: 360, height: 360, borderRadius: 180, backgroundColor: 'rgba(37,99,235,0.12)', left: -120, top: -120 },
+  glowRight: { position: 'absolute', width: 320, height: 320, borderRadius: 160, backgroundColor: 'rgba(5,150,105,0.10)', right: -100, top: -80 },
+  title: { fontSize: 34, fontWeight: '800', color: '#dbe9ff', marginTop: 8 },
+  subtitle: { fontSize: 16, color: '#cbd6e6', marginBottom: 20, textAlign: 'center' },
+  taglineRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 18, gap: 8 },
+  taglineIcon: { color: '#d6b3ff', fontSize: 18, marginRight: 6 },
+  taglineText: { color: '#d6b3ff', fontSize: 16 },
   row: { flexDirection: 'row' },
   rowCenter: { flexDirection: 'row', justifyContent: 'center' },
-  historyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#666',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 20,
-    gap: 8,
-  },
-  historyText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  // history button removed
 });

@@ -22,6 +22,8 @@ export default function ModeButton({ label, subtitle, color, iconName = 'photo',
       onPress={onPress}
       style={[styles.container, { backgroundColor: color }, style]}
     >
+      {/* subtle overlay to simulate a glossy gradient without adding dependencies */}
+      <View style={styles.surfaceOverlay} pointerEvents="none" />
       <View style={styles.innerRow}>
         <View style={styles.leftIconWrap}>
           <View style={styles.iconCircle} />
@@ -77,6 +79,11 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     backgroundColor: 'rgba(255,255,255,0.12)'
+  },
+  surfaceOverlay: {
+    ...StyleSheet.absoluteFillObject as any,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   icon: {
     marginLeft: 8,
