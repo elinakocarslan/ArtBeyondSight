@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { announceOrSpeak } from './accessibility';
 import { speakWithUnrealSpeech, stopUnrealSpeech } from './unrealSpeech';
 
 export default function ResultScreen() {
@@ -18,6 +17,7 @@ export default function ResultScreen() {
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [isPlayingHistorical, setIsPlayingHistorical] = useState(false);
   const [isPlayingImmersive, setIsPlayingImmersive] = useState(false);
+  const [showHistoricalTranscript, setShowHistoricalTranscript] = useState(false);
 
   useEffect(() => {
     // Auto-play music when the screen loads (if available)
@@ -25,12 +25,7 @@ export default function ResultScreen() {
       playMusic();
     }
 
-    // Use custom TTS instead of VoiceOver voice for announcement
-    if (description && title) {
-      setTimeout(() => {
-        announceOrSpeak(`Results loaded. ${title}. ${description.substring(0, 100)}...`);
-      }, 500);
-    }
+    // TTS announcement disabled per user request
 
     return () => {
       if (sound && typeof sound.unloadAsync === 'function') {
@@ -81,9 +76,10 @@ export default function ResultScreen() {
       const textToRead = historicalPrompt || description;
       if (textToRead) {
         setIsPlayingHistorical(true);
+        setShowHistoricalTranscript(true); // Show transcript when playing
         await speakWithUnrealSpeech(
           textToRead,
-          { voice: 'Scarlett', speed: 0, pitch: 1.0 },
+          { voice: 'Dan', speed: 0, pitch: 1.0 },
           () => setIsPlayingHistorical(false),
           (error) => {
             console.error('Unreal Speech error:', error);
@@ -111,7 +107,7 @@ export default function ResultScreen() {
         setIsPlayingImmersive(true);
         await speakWithUnrealSpeech(
           textToRead,
-          { voice: 'Liv', speed: 0, pitch: 1.0 },
+          { voice: 'Dan', speed: 0, pitch: 1.0 },
           () => setIsPlayingImmersive(false),
           (error) => {
             console.error('Unreal Speech error:', error);
@@ -166,11 +162,6 @@ export default function ResultScreen() {
           })()}
         </View>
 
-        <View style={styles.descriptionCard}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{description}</Text>
-        </View>
-
         <View style={styles.audioCard}>
           <Text style={styles.sectionTitleLight}>Audio Experience</Text>
           {audioUri && (
@@ -217,6 +208,27 @@ export default function ResultScreen() {
           <Text style={styles.audioHint}>
             Tap buttons to hear different perspectives on this artwork
           </Text>
+
+          {showHistoricalTranscript && (
+            <View style={styles.transcriptSection}>
+              <TouchableOpacity 
+                style={styles.transcriptToggle}
+                onPress={() => setShowHistoricalTranscript(!showHistoricalTranscript)}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle transcript visibility"
+              >
+                <Text style={styles.transcriptTitle}>Transcript</Text>
+                <MaterialIcons 
+                  name="expand-less"
+                  size={24} 
+                  color="#fff" 
+                />
+              </TouchableOpacity>
+              <Text style={styles.transcriptText} accessible={false}>
+                {historicalPrompt || description}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.rowActions}>
@@ -262,6 +274,8 @@ const styles = StyleSheet.create({
   pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, marginRight: 8, marginBottom: 8 },
   pillText: { color: '#fff', fontWeight: '700' },
   descriptionCard: { backgroundColor: '#0b1220', borderRadius: 12, padding: 16, marginTop: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
+  transcriptCard: { backgroundColor: '#0b1220', borderRadius: 12, padding: 16, marginTop: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
+  transcriptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 8 },
   sectionTitleLight: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 12 },
   description: { color: '#cbd5e1', fontSize: 16, lineHeight: 22 },
@@ -273,6 +287,10 @@ const styles = StyleSheet.create({
   audioButtonSecondary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#5B21B6', paddingVertical: 14, borderRadius: 10 },
   audioButtonText: { color: '#fff', fontWeight: '700', marginLeft: 6 },
   audioHint: { color: '#9CA3AF', marginTop: 12, textAlign: 'center' },
+  transcriptSection: { marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 16 },
+  transcriptToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  transcriptTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  transcriptText: { color: '#cbd5e1', fontSize: 14, lineHeight: 20 },
   rowActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 },
   actionButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#111827', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
   actionText: { color: '#fff', fontWeight: '700' },

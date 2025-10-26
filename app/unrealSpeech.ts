@@ -6,7 +6,7 @@ const UNREAL_SPEECH_API_KEY = Constants.expoConfig?.extra?.unrealSpeechApiKey ||
 const UNREAL_SPEECH_API_URL = 'https://api.v7.unrealspeech.com/speech';
 
 // Voice options for Unreal Speech
-export type UnrealVoice = 'Scarlett' | 'Liv' | 'Dan' | 'Will' | 'Amy';
+export type UnrealVoice = 'Scarlett' | 'Liv' | 'Dan' | 'Will' | 'Amy' | 'Daniel';
 
 interface UnrealSpeechOptions {
   voice?: UnrealVoice;
@@ -38,6 +38,10 @@ export async function speakWithUnrealSpeech(
       throw new Error('Unreal Speech API key not configured');
     }
 
+    console.log('Making Unreal Speech API request...');
+    console.log('Voice:', options?.voice || 'Scarlett');
+    console.log('API Key present:', !!UNREAL_SPEECH_API_KEY);
+
     // Make API request to Unreal Speech
     const response = await fetch(UNREAL_SPEECH_API_URL, {
       method: 'POST',
@@ -55,8 +59,12 @@ export async function speakWithUnrealSpeech(
       }),
     });
 
+    console.log('Response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Unreal Speech API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`Unreal Speech API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
