@@ -14,6 +14,8 @@ export default function ResultScreen() {
 
   const [sound, setSound] = useState<any | null>(null);
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
+  const [isPlayingHistorical, setIsPlayingHistorical] = useState(false);
+  const [isPlayingImmersive, setIsPlayingImmersive] = useState(false);
 
   useEffect(() => {
     // Auto-play music when the screen loads (if available)
@@ -60,16 +62,52 @@ export default function ResultScreen() {
   };
 
   const onReadHistoricalDescription = () => {
-    const textToRead = historicalPrompt || description;
-    if (textToRead) {
-      Speech.speak(textToRead, { language: 'en-US' });
+    if (isPlayingHistorical) {
+      // Stop the speech
+      Speech.stop();
+      setIsPlayingHistorical(false);
+    } else {
+      // Stop immersive if playing
+      if (isPlayingImmersive) {
+        Speech.stop();
+        setIsPlayingImmersive(false);
+      }
+
+      const textToRead = historicalPrompt || description;
+      if (textToRead) {
+        setIsPlayingHistorical(true);
+        Speech.speak(textToRead, {
+          language: 'en-US',
+          onDone: () => setIsPlayingHistorical(false),
+          onStopped: () => setIsPlayingHistorical(false),
+          onError: () => setIsPlayingHistorical(false),
+        });
+      }
     }
   };
 
   const onReadImmersiveDescription = () => {
-    const textToRead = immersivePrompt || description;
-    if (textToRead) {
-      Speech.speak(textToRead, { language: 'en-US' });
+    if (isPlayingImmersive) {
+      // Stop the speech
+      Speech.stop();
+      setIsPlayingImmersive(false);
+    } else {
+      // Stop historical if playing
+      if (isPlayingHistorical) {
+        Speech.stop();
+        setIsPlayingHistorical(false);
+      }
+
+      const textToRead = immersivePrompt || description;
+      if (textToRead) {
+        setIsPlayingImmersive(true);
+        Speech.speak(textToRead, {
+          language: 'en-US',
+          onDone: () => setIsPlayingImmersive(false),
+          onStopped: () => setIsPlayingImmersive(false),
+          onError: () => setIsPlayingImmersive(false),
+        });
+      }
     }
   };
 
@@ -136,21 +174,33 @@ export default function ResultScreen() {
             <TouchableOpacity
               style={styles.audioButtonPrimary}
               accessibilityRole="button"
-              accessibilityLabel="Read historical description aloud"
+              accessibilityLabel={isPlayingHistorical ? "Pause historical description" : "Read historical description aloud"}
               onPress={onReadHistoricalDescription}
             >
-              <MaterialIcons name="history-edu" size={22} color="#fff" />
-              <Text style={styles.audioButtonText}>Historical</Text>
+              <MaterialIcons
+                name={isPlayingHistorical ? "pause" : "history-edu"}
+                size={22}
+                color="#fff"
+              />
+              <Text style={styles.audioButtonText}>
+                {isPlayingHistorical ? "Pause" : "Historical"}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.audioButtonSecondary}
               accessibilityRole="button"
-              accessibilityLabel="Read immersive description aloud"
+              accessibilityLabel={isPlayingImmersive ? "Pause immersive description" : "Read immersive description aloud"}
               onPress={onReadImmersiveDescription}
             >
-              <MaterialIcons name="auto-awesome" size={22} color="#fff" />
-              <Text style={styles.audioButtonText}>Immersive</Text>
+              <MaterialIcons
+                name={isPlayingImmersive ? "pause" : "auto-awesome"}
+                size={22}
+                color="#fff"
+              />
+              <Text style={styles.audioButtonText}>
+                {isPlayingImmersive ? "Pause" : "Immersive"}
+              </Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.audioHint}>

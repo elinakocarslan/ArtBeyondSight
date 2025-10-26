@@ -71,6 +71,6 @@ if __name__ == "__main__":
         test_api()
         print("\n✅ All tests completed!")
     except requests.exceptions.ConnectionError:
-        print("❌ Could not connect to the API. Make sure the server is running with: python main.py")
+        print("❌ connect to the API. Make sure the server is running with: python main.py")
     except Exception as e:
         print(f"❌ Test failed: {e}")

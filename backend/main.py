@@ -61,6 +61,13 @@ def serialize_doc(doc):
     if doc:
         doc['id'] = str(doc['_id'])
         doc.pop('_id', None)
+        # Convert datetime objects to ISO format strings for JSON serialization
+        if 'created_at' in doc and doc['created_at']:
+            if hasattr(doc['created_at'], 'isoformat'):
+                doc['created_at'] = doc['created_at'].isoformat()
+        if 'updated_at' in doc and doc['updated_at']:
+            if hasattr(doc['updated_at'], 'isoformat'):
+                doc['updated_at'] = doc['updated_at'].isoformat()
     return doc
 
 # API Endpoints
