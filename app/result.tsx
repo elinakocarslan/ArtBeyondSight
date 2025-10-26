@@ -310,16 +310,18 @@ export default function ResultScreen() {
         </View>
 
         <View style={styles.rowActions}>
-            <TouchableOpacity 
-              style={styles.actionButton} 
-              accessibilityRole="button"
-              accessibilityLabel="Take another picture"
-              accessibilityHint="Double tap to return to camera to scan another artwork"
-              onPress={onTakeAnother}
-            >
-              <MaterialIcons name="photo-camera" size={20} color="#fff" />
-              <Text style={styles.actionText}>Take Another Picture</Text>
-            </TouchableOpacity>          <TouchableOpacity 
+          <TouchableOpacity 
+            style={styles.actionButton} 
+            accessibilityRole="button"
+            accessibilityLabel="Take another picture"
+            accessibilityHint="Double tap to return to camera to scan another artwork"
+            onPress={onTakeAnother}
+          >
+            <MaterialIcons name="photo-camera" size={20} color="#fff" />
+            <Text style={styles.actionText}>Take Another Picture</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
             style={styles.actionButtonOutline} 
             accessibilityRole="button"
             accessibilityLabel="Back to home"

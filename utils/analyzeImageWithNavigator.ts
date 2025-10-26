@@ -621,7 +621,7 @@ export type MuseumAnalysisResult = AnalysisResult;
 
 // ============= API CONFIGURATION =============
 const NAVIGATOR_API_KEY = 'sk-SwCA-nMn6Z1Zz1F0UXDzgQ';
-const SUNO_API_KEY = '70630a0da6baaa463a88c02c946ad25a';
+const SUNO_API_KEY = '209dd16baa1288929326217f6c9b4a59';
 const NAVIGATOR_BASE_URL = 'https://api.ai.it.ufl.edu/v1/';
 const SUNO_BASE_URL = 'https://api.sunoapi.org';
 const MODEL = 'mistral-small-3.1';

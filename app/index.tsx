@@ -2,41 +2,30 @@ import ModeButton from '@/components/mode-button';
 import OnboardingModal from '@/components/onboarding-modal';
 import VOPressable from '@/components/vo-pressable';
 import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 // decorative icons removed from this screen
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-const ONBOARDING_KEY = '@app_onboarding_completed';
+// Track if onboarding has been shown in this app session
+let hasShownOnboarding = false;
 
 export default function Home() {
   const router = useRouter();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const isFirstMount = useRef(true);
 
   useEffect(() => {
-    checkOnboarding();
+    // Only show on first mount AND if not shown in this session
+    if (isFirstMount.current && !hasShownOnboarding) {
+      setShowOnboarding(true);
+      hasShownOnboarding = true;
+      isFirstMount.current = false;
+    }
   }, []);
 
-  const checkOnboarding = async () => {
-    try {
-      const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
-      if (!completed) {
-        setShowOnboarding(true);
-      }
-    } catch (error) {
-      console.warn('Error checking onboarding status:', error);
-    }
-  };
-
-  const handleCloseOnboarding = async () => {
-    try {
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-      setShowOnboarding(false);
-    } catch (error) {
-      console.warn('Error saving onboarding status:', error);
-      setShowOnboarding(false);
-    }
+  const handleCloseOnboarding = () => {
+    setShowOnboarding(false);
   };
 
   const openMode = (mode: 'museum' | 'monuments' | 'landscape') => {
