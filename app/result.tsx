@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { announceOrSpeak, speak } from './accessibility';
 
 export default function ResultScreen() {
   const params = useLocalSearchParams();
@@ -23,9 +24,11 @@ export default function ResultScreen() {
       playMusic();
     }
 
-    // Optionally auto-narrate description for accessibility
-    if (description) {
-      AccessibilityInfo.announceForAccessibility('Description loaded.');
+    // Use custom TTS instead of VoiceOver voice for announcement
+    if (description && title) {
+      setTimeout(() => {
+        announceOrSpeak(`Results loaded. ${title}. ${description.substring(0, 100)}...`);
+      }, 500);
     }
 
     return () => {
@@ -34,7 +37,8 @@ export default function ResultScreen() {
       }
       Speech.stop();
     };
-  }, [audioUri, description]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioUri, description, title]);
 
   const playMusic = async () => {
     try {
