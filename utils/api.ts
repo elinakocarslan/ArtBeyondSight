@@ -15,7 +15,7 @@ const getApiBaseUrl = () => {
       return 'http://10.0.2.2:8000';
     }
     // iOS simulator and web can use localhost
-    return 'http://localhost:8000';
+    return 'http://10.138.236.106:8000';
   }
 
   // Production

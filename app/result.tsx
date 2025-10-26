@@ -9,12 +9,18 @@ export default function ResultScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
 
-  // analyzeImage returns fields: imageUri, title, artist, type, description, emotions, audioUri
-  const { imageUri, title, artist, type, description, emotions, audioUri } = params as any;
+  // analyzeImage returns fields: imageUri, title, artist, type, description, historicalPrompt, immersivePrompt, emotions, audioUri
+  const { imageUri, title, artist, type, description, historicalPrompt, immersivePrompt, emotions, audioUri } = params as any;
 
   const [sound, setSound] = useState<any | null>(null);
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
 
   useEffect(() => {
+    // Auto-play music when the screen loads (if available)
+    if (audioUri) {
+      playMusic();
+    }
+
     // Optionally auto-narrate description for accessibility
     if (description) {
       AccessibilityInfo.announceForAccessibility('Description loaded.');
@@ -26,26 +32,44 @@ export default function ResultScreen() {
       }
       Speech.stop();
     };
-  }, [description, sound]);
+  }, [audioUri, description]);
 
   const playMusic = async () => {
     try {
+      if (sound && typeof sound.unloadAsync === 'function') {
+        await sound.unloadAsync();
+      }
+
       if (audioUri) {
         const { sound: s } = await Audio.Sound.createAsync({ uri: audioUri }, { shouldPlay: true });
         setSound(s);
+        setIsPlayingMusic(true);
+
+        s.setOnPlaybackStatusUpdate((status: any) => {
+          if (status.didJustFinish) {
+            setIsPlayingMusic(false);
+          }
+        });
       } else {
-        // placeholder: short generated tone/asset
-        // if you add assets/audio/demo.mp3 include it here
-        console.warn('No generated audio available, playing fallback (none)');
+        console.warn('No generated audio available');
       }
     } catch (e) {
       console.warn('playMusic failed', e);
+      setIsPlayingMusic(false);
     }
   };
 
-  const onReadAloud = () => {
-    if (description) {
-      Speech.speak(description, { language: 'en-US' });
+  const onReadHistoricalDescription = () => {
+    const textToRead = historicalPrompt || description;
+    if (textToRead) {
+      Speech.speak(textToRead, { language: 'en-US' });
+    }
+  };
+
+  const onReadImmersiveDescription = () => {
+    const textToRead = immersivePrompt || description;
+    if (textToRead) {
+      Speech.speak(textToRead, { language: 'en-US' });
     }
   };
 
@@ -55,7 +79,7 @@ export default function ResultScreen() {
   };
 
   return (
-  <ScrollView contentContainerStyle={styles.container} accessible accessibilityRole="summary">
+    <ScrollView contentContainerStyle={styles.container} accessible accessibilityRole="summary">
       <View style={styles.headerCard}>
         {imageUri ? (
           <View style={styles.imageWrap}>
@@ -100,18 +124,38 @@ export default function ResultScreen() {
 
         <View style={styles.audioCard}>
           <Text style={styles.sectionTitleLight}>Audio Experience</Text>
+          {audioUri && (
+            <View style={styles.musicStatus}>
+              <MaterialIcons name="music-note" size={18} color="#9CA3AF" />
+              <Text style={styles.musicStatusText}>
+                {isPlayingMusic ? '🎵 Music playing...' : '🎵 Music auto-played'}
+              </Text>
+            </View>
+          )}
           <View style={styles.audioButtons}>
-            <TouchableOpacity style={styles.audioButtonPrimary} accessibilityRole="button" accessibilityLabel="Play music" onPress={playMusic}>
-              <MaterialIcons name="play-arrow" size={22} color="#fff" />
-              <Text style={styles.audioButtonText}>Play Music</Text>
+            <TouchableOpacity
+              style={styles.audioButtonPrimary}
+              accessibilityRole="button"
+              accessibilityLabel="Read historical description aloud"
+              onPress={onReadHistoricalDescription}
+            >
+              <MaterialIcons name="history-edu" size={22} color="#fff" />
+              <Text style={styles.audioButtonText}>Historical</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.audioButtonSecondary} accessibilityRole="button" accessibilityLabel="Read aloud" onPress={onReadAloud}>
-              <MaterialIcons name="record-voice-over" size={22} color="#fff" />
-              <Text style={styles.audioButtonText}>Read Aloud</Text>
+            <TouchableOpacity
+              style={styles.audioButtonSecondary}
+              accessibilityRole="button"
+              accessibilityLabel="Read immersive description aloud"
+              onPress={onReadImmersiveDescription}
+            >
+              <MaterialIcons name="auto-awesome" size={22} color="#fff" />
+              <Text style={styles.audioButtonText}>Immersive</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.audioHint}>Experience this artwork through AI-generated music and narration</Text>
+          <Text style={styles.audioHint}>
+            Tap buttons to hear different perspectives on this artwork
+          </Text>
         </View>
 
         <View style={styles.rowActions}>
@@ -161,6 +205,8 @@ const styles = StyleSheet.create({
   sectionTitleLight: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 12 },
   description: { color: '#cbd5e1', fontSize: 16, lineHeight: 22 },
   audioCard: { marginTop: 18, backgroundColor: '#2b0738', padding: 16, borderRadius: 12 },
+  musicStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, gap: 8 },
+  musicStatusText: { color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' },
   audioButtons: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   audioButtonPrimary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#7C3AED', paddingVertical: 14, borderRadius: 10, marginRight: 8 },
   audioButtonSecondary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#5B21B6', paddingVertical: 14, borderRadius: 10 },

@@ -12,10 +12,44 @@ interface ChatCompletionResponse {
   }>;
 }
 
-interface SunoTask {
-  taskId: string;
-  status: 'PENDING' | 'GENERATING' | 'SUCCESS' | 'FAILED';
-  audioUrl?: string;
+interface SunoGenerateResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string;
+  };
+}
+
+interface SunoStatusResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string;
+    parentMusicId?: string;
+    param?: string;
+    response?: {
+      taskId: string;
+      sunoData?: Array<{
+        id: string;
+        audioUrl: string;
+        streamAudioUrl?: string;
+        imageUrl?: string;
+        prompt?: string;
+        modelName?: string;
+        title?: string;
+        tags?: string;
+        createTime?: string;
+        duration?: number;
+      }>;
+    };
+    status: 'PENDING' | 'TEXT_SUCCESS' | 'FIRST_SUCCESS' | 'SUCCESS' | 
+            'CREATE_TASK_FAILED' | 'GENERATE_AUDIO_FAILED' | 
+            'CALLBACK_EXCEPTION' | 'SENSITIVE_WORD_ERROR';
+    type?: string;
+    operationType?: string;
+    errorCode?: number | null;
+    errorMessage?: string | null;
+  };
 }
 
 export interface MuseumAnalysisResult {
@@ -30,11 +64,7 @@ export interface MuseumAnalysisResult {
 
 // ============= API CONFIGURATION =============
 const NAVIGATOR_API_KEY = 'sk-SwCA-nMn6Z1Zz1F0UXDzgQ'; // Your Navigator API Key
-const SUNO_API_KEY = 'e53be8225ca6b0c63cdec7a7d4091d59'; // Your Suno API Key
-
-// const NAVIGATOR_API_KEY = process.env.NAVIGATOR_API_KEY;
-// const SUNO_API_KEY = process.env.SUNO_API_KEY;
-
+const SUNO_API_KEY = '6d7ecd41a702fe501d8ad9eab9525830'; // Your Suno API Key
 const NAVIGATOR_BASE_URL = 'https://api.ai.it.ufl.edu/v1/';
 const SUNO_BASE_URL = 'https://api.sunoapi.org';
 const MODEL = 'mistral-small-3.1';
@@ -62,7 +92,6 @@ const convertImageToBase64 = async (uri: string): Promise<string> => {
     throw error;
   }
 };
-
 
 // ============= STEP 1: Analyze Artwork with Navigator AI =============
 async function analyzeArtworkWithNavigator(imageUri: string): Promise<{
@@ -170,13 +199,16 @@ IMPORTANT: Your response must be EXACTLY 500 characters or less. Be concise and 
 
     // PROMPT 3: Immersive/Emotional Description (400 chars)
     console.log('🎨 Step 4: Getting immersive description...');
-    const immersivePrompt = `Describe this artwork in a poetic, immersive way that captures:
-- Color palette and lighting (be specific)
-- Atmosphere and mood
-- Emotions evoked
-- Sensory details
+    const immersivePrompt = `Describe this image in a poetic, immersive way that captures:
+- The color palette and lighting (be specific: "soft blues", "warm amber glow", etc.)
+- The setting and atmosphere
+- The emotions and mood evoked
+- The relationship between subjects or elements
+- The feeling of the scene
+- Movement and dynamics
+- Physical details that create emotion (posture, expressions, gestures)
 
-Write in present tense, as if describing a living moment. Make it vivid and evocative.
+Write 3-4 sentences in present tense, as if describing a living moment. Focus on sensory details and emotional weight. Make it vivid and evocative while describing the movement and immersive elements of what's happening in the painting, like the example: "Soft hues of blue wash over a quiet room. A woman, draped in flowing indigo robes, bows gently toward a child..."
 
 IMPORTANT: Your response must be EXACTLY 400 characters or less. Focus on sensory details and emotional weight.`;
 
@@ -238,7 +270,7 @@ IMPORTANT: Your response must be EXACTLY 400 characters or less. Focus on sensor
 async function generateMusicWithSuno(prompt: string): Promise<string | null> {
   try {
     console.log('🎵 Step 5: Starting Suno music generation...');
-    console.log('Music prompt:', prompt);
+    console.log('📝 Music prompt:', prompt);
 
     const response = await fetch(`${SUNO_BASE_URL}/api/v1/generate`, {
       method: 'POST',
@@ -250,39 +282,57 @@ async function generateMusicWithSuno(prompt: string): Promise<string | null> {
         prompt: prompt,
         customMode: false,
         instrumental: true,
+        style: "Classical",
+        negativeTags: "Heavy Metal, Upbeat Drums, Rock",
         model: 'V4_5',
-        callBackUrl: 'https://webhook.site/unique-id',
+        audioWeight:0.65,
+        // REQUIRED by Suno API, but we're polling so we use a dummy URL
+        // This is a free webhook testing service that accepts POSTs but we don't use the data
+        callBackUrl: 'https://webhook.site/#!/view/00000000-0000-0000-0000-000000000000',
       }),
     });
 
-    const result = await response.json();
-    console.log('Suno API Response:', result);
-
-    if (result.code !== 200) {
-      throw new Error(`Suno API Error: ${result.msg}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const taskId = result.data.taskId;
+    const result: SunoGenerateResponse = await response.json();
+    console.log('📡 Suno API Response:', JSON.stringify(result, null, 2));
+
+    // Check response code
+    if (result.code !== 200) {
+      throw new Error(`Suno API Error (${result.code}): ${result.msg}`);
+    }
+
+    const taskId = result.data?.taskId;
     if (!taskId) {
       throw new Error('No taskId returned from Suno API');
     }
 
-    console.log('✅ Task created with ID:', taskId);
+    console.log('✅ Task created successfully');
+    console.log(`   Task ID: ${taskId}`);
+    console.log('⏳ Starting polling for completion...');
 
-    // Poll for completion
+    // Poll for completion (we don't use the callback, just poll)
     const audioUrl = await pollSunoTaskStatus(taskId);
     return audioUrl;
 
   } catch (error) {
     console.error('❌ Suno music generation error:', error);
+    if (error instanceof Error) {
+      console.error('   Error details:', error.message);
+    }
     return null; // Return null if music generation fails (non-critical)
   }
 }
 
 // ============= HELPER: Poll Suno Task Status =============
 async function pollSunoTaskStatus(taskId: string): Promise<string | null> {
-  const maxAttempts = 60; // 5 minutes max
+  const maxAttempts = 120; // 10 minutes max
+  const pollInterval = 5000; // 5 seconds between checks
   let attempts = 0;
+
+  console.log(`⏰ Starting polling (max ${maxAttempts * pollInterval / 1000 / 60} minutes)...`);
 
   while (attempts < maxAttempts) {
     try {
@@ -298,36 +348,102 @@ async function pollSunoTaskStatus(taskId: string): Promise<string | null> {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to check task status');
+        console.warn(`⚠️  API returned status ${response.status}, retrying...`);
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        continue;
       }
 
       const result = await response.json();
-      const status = result.data.status;
-
-      console.log('Current status:', status);
-
-      if (status === 'SUCCESS' && result.data.response?.data?.[0]) {
-        const audioUrl = result.data.response.data[0].audio_url;
-        console.log('✅ Music generation complete! Audio URL:', audioUrl);
-        return audioUrl;
-      }
-
-      if (status === 'FAILED') {
-        console.error('❌ Music generation failed');
+      
+      // Check API response code first
+      if (result.code !== 200) {
+        console.error(`❌ API Error: ${result.msg}`);
         return null;
       }
 
-      // Wait 5 seconds before next check
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      const status = result.data?.status;
+      const errorMessage = result.data?.errorMessage;
+      const errorCode = result.data?.errorCode;
+
+      console.log(`📊 Status: ${status} | Attempt: ${attempts + 1}/${maxAttempts} | Time: ${Math.round((attempts + 1) * pollInterval / 1000)}s`);
+
+      // SUCCESS: All tracks generated successfully
+      if (status === 'SUCCESS') {
+        const sunoData = result.data.response?.sunoData;
+        if (sunoData && sunoData.length > 0) {
+          const firstTrack = sunoData[0];
+          const audioUrl = firstTrack.audioUrl;
+          
+          console.log('✅ Music generation SUCCESS!');
+          console.log(`   Title: ${firstTrack.title || 'Untitled'}`);
+          console.log(`   Duration: ${firstTrack.duration || 0}s`);
+          console.log(`   Audio URL: ${audioUrl}`);
+          console.log(`   Image URL: ${firstTrack.imageUrl || 'None'}`);
+          console.log(`⏱️  Total time: ${(attempts * pollInterval) / 1000} seconds`);
+          
+          return audioUrl;
+        } else {
+          console.error('❌ SUCCESS status but no audio data found');
+          return null;
+        }
+      }
+
+      // FIRST_SUCCESS: First track completed (continue polling for all tracks)
+      if (status === 'FIRST_SUCCESS') {
+        console.log('🎵 First track completed, waiting for all tracks...');
+      }
+
+      // TEXT_SUCCESS: Lyrics/text generation completed
+      if (status === 'TEXT_SUCCESS') {
+        console.log('📝 Text generation completed, waiting for audio...');
+      }
+
+      // PENDING: Task is waiting to be processed
+      if (status === 'PENDING') {
+        console.log(`⏳ Task pending... (${Math.round((attempts + 1) * pollInterval / 1000)}s elapsed)`);
+      }
+
+      // Error statuses - stop polling immediately
+      if (status === 'CREATE_TASK_FAILED') {
+        console.error('❌ Failed to create generation task');
+        console.error(`   Error: ${errorMessage || 'Unknown error'}`);
+        return null;
+      }
+
+      if (status === 'GENERATE_AUDIO_FAILED') {
+        console.error('❌ Failed to generate music tracks');
+        console.error(`   Error: ${errorMessage || 'Unknown error'}`);
+        return null;
+      }
+
+      if (status === 'CALLBACK_EXCEPTION') {
+        console.error('❌ Callback error occurred');
+        console.error(`   Error: ${errorMessage || 'Unknown error'}`);
+        return null;
+      }
+
+      if (status === 'SENSITIVE_WORD_ERROR') {
+        console.error('❌ Content contains prohibited words');
+        console.error(`   Error: ${errorMessage || 'Content filtered'}`);
+        return null;
+      }
+
+      // Wait before next check
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
       attempts++;
 
     } catch (error) {
       console.error('❌ Error checking task status:', error);
-      return null;
+      console.log('🔄 Retrying in 5 seconds...');
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      attempts++;
     }
   }
 
-  console.error('❌ Music generation timeout');
+  console.error(`❌ Music generation timeout after ${maxAttempts * pollInterval / 1000 / 60} minutes`);
+  console.error('💡 Music generation can take 2-5 minutes. The task may still complete on Suno\'s servers.');
+  console.error(`💡 Check the Suno website for taskId: ${taskId}`);
   return null;
 }
 

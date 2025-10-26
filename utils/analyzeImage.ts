@@ -10,6 +10,8 @@ export interface AnalyzeImageResult {
   artist: string;
   type: string;
   description: string;
+  historicalPrompt?: string; // For museum mode
+  immersivePrompt?: string;  // For museum mode
   emotions: string[];
   audioUri: string | null;
   analysisId?: string; // Database ID after saving
@@ -23,7 +25,7 @@ export async function analyzeImage(
   imageUri: string,
   mode: 'museum' | 'monuments' | 'landscape'
 ): Promise<AnalyzeImageResult> {
-  
+
   console.log(`🎯 Starting ${mode} analysis...`);
 
   try {
@@ -52,24 +54,50 @@ async function analyzeMuseumMode(imageUri: string): Promise<AnalyzeImageResult> 
     // Step 1: Analyze with Navigator AI and generate music with Suno
     const analysisResult: MuseumAnalysisResult = await analyzeMuseumImage(imageUri);
 
-    // Step 2: Save to database
+    // Step 2: Save to database (even if music failed)
     console.log('💾 Saving analysis to database...');
-    const savedData = await ArtBeyondSightAPI.saveMuseumAnalysis(analysisResult);
+    try {
+      const savedData = await ArtBeyondSightAPI.saveMuseumAnalysis(analysisResult);
+      console.log('✅ Successfully saved to database with ID:', savedData.id);
 
-    // Step 3: Format for ResultScreen
-    const result: AnalyzeImageResult = {
-      imageUri: analysisResult.imageUri,
-      title: analysisResult.paintingName,
-      artist: analysisResult.artist,
-      type: analysisResult.genre,
-      description: analysisResult.historicalPrompt,
-      emotions: extractEmotions(analysisResult.immersivePrompt),
-      audioUri: analysisResult.audioUri,
-      analysisId: savedData.id,
-    };
+      // Step 3: Format for ResultScreen
+      const result: AnalyzeImageResult = {
+        imageUri: analysisResult.imageUri,
+        title: analysisResult.paintingName,
+        artist: analysisResult.artist,
+        type: analysisResult.genre,
+        description: analysisResult.historicalPrompt,
+        historicalPrompt: analysisResult.historicalPrompt,
+        immersivePrompt: analysisResult.immersivePrompt,
+        emotions: extractEmotions(analysisResult.immersivePrompt),
+        audioUri: analysisResult.audioUri,
+        analysisId: savedData.id,
+      };
 
-    console.log('✅ Museum analysis complete and saved!');
-    return result;
+      console.log('✅ Museum analysis complete and saved!');
+      return result;
+
+    } catch (dbError) {
+      console.error('❌ Database save failed:', dbError);
+      console.log('⚠️  Continuing without database save - data will not be in history');
+
+      // Still return result so user can see analysis even if DB fails
+      const result: AnalyzeImageResult = {
+        imageUri: analysisResult.imageUri,
+        title: analysisResult.paintingName,
+        artist: analysisResult.artist,
+        type: analysisResult.genre,
+        description: analysisResult.historicalPrompt,
+        historicalPrompt: analysisResult.historicalPrompt,
+        immersivePrompt: analysisResult.immersivePrompt,
+        emotions: extractEmotions(analysisResult.immersivePrompt),
+        audioUri: analysisResult.audioUri,
+        analysisId: undefined, // No DB ID since save failed
+      };
+
+      console.log('⚠️  Museum analysis complete but NOT saved to database');
+      return result;
+    }
 
   } catch (error) {
     console.error('❌ Museum mode analysis failed:', error);
@@ -82,7 +110,7 @@ async function analyzeMuseumMode(imageUri: string): Promise<AnalyzeImageResult> 
  */
 async function analyzeMonumentsMode(imageUri: string): Promise<AnalyzeImageResult> {
   console.log('🗿 Monuments Mode: Using fallback analysis...');
-  
+
   // TODO: Implement monuments-specific analysis
   // For now, return mock data
   return {
@@ -101,7 +129,7 @@ async function analyzeMonumentsMode(imageUri: string): Promise<AnalyzeImageResul
  */
 async function analyzeLandscapeMode(imageUri: string): Promise<AnalyzeImageResult> {
   console.log('🌄 Landscape Mode: Using fallback analysis...');
-  
+
   // TODO: Implement landscape-specific analysis
   // For now, return mock data
   return {
@@ -120,19 +148,19 @@ async function analyzeLandscapeMode(imageUri: string): Promise<AnalyzeImageResul
  */
 function extractEmotions(immersivePrompt: string): string[] {
   const emotionKeywords = [
-    'calm', 'dreamy', 'melancholy', 'energetic', 'mysterious', 
+    'calm', 'dreamy', 'melancholy', 'energetic', 'mysterious',
     'romantic', 'joyful', 'somber', 'dramatic', 'peaceful',
     'intense', 'serene', 'vibrant', 'haunting', 'ethereal'
   ];
 
   const text = immersivePrompt.toLowerCase();
-  const foundEmotions = emotionKeywords.filter(emotion => 
+  const foundEmotions = emotionKeywords.filter(emotion =>
     text.includes(emotion)
   );
 
   // Return found emotions or default ones
-  return foundEmotions.length > 0 
-    ? foundEmotions.slice(0, 3) 
+  return foundEmotions.length > 0
+    ? foundEmotions.slice(0, 3)
     : ['artistic', 'expressive', 'captivating'];
 }
 
