@@ -108,22 +108,8 @@ async function getAvailableVoices(preferredLang = 'en-US') {
       );
     }
 
-    const premiumVoice =
-      cachedVoices.find(v => (v.identifier ?? '').includes('Siri') && (v.identifier ?? '').includes('female')) ||
-      cachedVoices.find(v => v.name === 'Amelie') ||
-      cachedVoices.find(v => v.name === 'Samantha' && v.quality === 'Enhanced') ||
-      cachedVoices.find(
-        v =>
-          v.language === preferredLang &&
-          (v.quality === 'Enhanced' ||
-            (v.identifier ?? '').toLowerCase().includes('eloquence') ||
-            (v.identifier ?? '').toLowerCase().includes('premium'))
-      ) || null;
-
-    const fallbackVoice =
-      cachedVoices.find(v => v.language === preferredLang) || null;
-
-    return premiumVoice || fallbackVoice;
+    // Return null to use system default voice
+    return null;
   } catch (e) {
     console.warn('getAvailableVoices error', e);
     return null;
@@ -134,8 +120,6 @@ async function speak(text: string, options?: Partial<Speech.SpeechOptions>) {
   if (!isTTSEnabled) return;
 
   try {
-    const preferredVoice = await getAvailableVoices('en-US');
-
     try {
       if (Platform.OS === 'ios' && isScreenReaderEnabled) {
         await Audio.setAudioModeAsync({
@@ -160,14 +144,13 @@ async function speak(text: string, options?: Partial<Speech.SpeechOptions>) {
 
     await Speech.stop();
     Speech.speak(text, {
-      voice: preferredVoice?.identifier,
       language: 'en-US',
       pitch: options?.pitch ?? defaultTTSSettings.pitch,
       rate: options?.rate ?? defaultTTSSettings.rate,
       ...options,
     });
 
-    console.log(`Speaking with voice: ${preferredVoice?.name || 'default'}`);
+    console.log('Speaking with default system voice');
   } catch (err) {
     console.warn('TTS speak error', err);
     try {

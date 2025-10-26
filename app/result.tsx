@@ -4,7 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { announceOrSpeak, speak } from './accessibility';
+import { announceOrSpeak } from './accessibility';
+import { speakWithUnrealSpeech, stopUnrealSpeech } from './unrealSpeech';
 
 export default function ResultScreen() {
   const params = useLocalSearchParams();
@@ -65,52 +66,58 @@ export default function ResultScreen() {
     }
   };
 
-  const onReadHistoricalDescription = () => {
+  const onReadHistoricalDescription = async () => {
     if (isPlayingHistorical) {
-      // Stop the speech
-      Speech.stop();
+      // Stop the Unreal Speech
+      await stopUnrealSpeech();
       setIsPlayingHistorical(false);
     } else {
       // Stop immersive if playing
       if (isPlayingImmersive) {
-        Speech.stop();
+        await stopUnrealSpeech();
         setIsPlayingImmersive(false);
       }
 
       const textToRead = historicalPrompt || description;
       if (textToRead) {
         setIsPlayingHistorical(true);
-        Speech.speak(textToRead, {
-          language: 'en-US',
-          onDone: () => setIsPlayingHistorical(false),
-          onStopped: () => setIsPlayingHistorical(false),
-          onError: () => setIsPlayingHistorical(false),
-        });
+        await speakWithUnrealSpeech(
+          textToRead,
+          { voice: 'Scarlett', speed: 0, pitch: 1.0 },
+          () => setIsPlayingHistorical(false),
+          (error) => {
+            console.error('Unreal Speech error:', error);
+            setIsPlayingHistorical(false);
+          }
+        );
       }
     }
   };
 
-  const onReadImmersiveDescription = () => {
+  const onReadImmersiveDescription = async () => {
     if (isPlayingImmersive) {
-      // Stop the speech
-      Speech.stop();
+      // Stop the Unreal Speech
+      await stopUnrealSpeech();
       setIsPlayingImmersive(false);
     } else {
       // Stop historical if playing
       if (isPlayingHistorical) {
-        Speech.stop();
+        await stopUnrealSpeech();
         setIsPlayingHistorical(false);
       }
 
       const textToRead = immersivePrompt || description;
       if (textToRead) {
         setIsPlayingImmersive(true);
-        Speech.speak(textToRead, {
-          language: 'en-US',
-          onDone: () => setIsPlayingImmersive(false),
-          onStopped: () => setIsPlayingImmersive(false),
-          onError: () => setIsPlayingImmersive(false),
-        });
+        await speakWithUnrealSpeech(
+          textToRead,
+          { voice: 'Liv', speed: 0, pitch: 1.0 },
+          () => setIsPlayingImmersive(false),
+          (error) => {
+            console.error('Unreal Speech error:', error);
+            setIsPlayingImmersive(false);
+          }
+        );
       }
     }
   };
