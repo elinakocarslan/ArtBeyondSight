@@ -255,7 +255,7 @@
 // utils/analyzeImage.ts
 // Updated to handle Museum, Monument, and Landscape modes
 
-import { analyzeImage as analyzeWithNavigator, AnalysisResult } from './analyzeImageWithNavigator';
+import { AnalysisResult, analyzeImage as analyzeWithNavigator } from './analyzeImageWithNavigator';
 import { ArtBeyondSightAPI } from './api';
 
 export interface AnalyzeImageResult {
@@ -287,50 +287,45 @@ export async function analyzeImage(
     console.log(`🎨 ${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode: Starting Navigator AI analysis...`);
     const analysisResult: AnalysisResult = await analyzeWithNavigator(imageUri, mode);
 
-    // Step 2: Save to database
-    console.log('💾 Saving analysis to database...');
-    try {
-      const savedData = await ArtBeyondSightAPI.saveAnalysis(analysisResult);
-      console.log('✅ Successfully saved to database with ID:', savedData.id);
-
-      // Step 3: Format for ResultScreen
-      const result: AnalyzeImageResult = {
-        imageUri: analysisResult.imageUri,
-        title: analysisResult.name,
-        artist: analysisResult.creator,
-        type: analysisResult.category,
-        description: analysisResult.historicalPrompt,
-        historicalPrompt: analysisResult.historicalPrompt,
-        immersivePrompt: analysisResult.immersivePrompt,
-        emotions: extractEmotions(analysisResult.immersivePrompt, mode),
-        audioUri: analysisResult.audioUri,
-        analysisId: savedData.id,
-      };
-
-      console.log(`✅ ${mode} analysis complete and saved!`);
-      return result;
-
-    } catch (dbError) {
-      console.error('❌ Database save failed:', dbError);
-      console.log('⚠️  Continuing without database save - data will not be in history');
-
-      // Still return result so user can see analysis even if DB fails
-      const result: AnalyzeImageResult = {
-        imageUri: analysisResult.imageUri,
-        title: analysisResult.name,
-        artist: analysisResult.creator,
-        type: analysisResult.category,
-        description: analysisResult.historicalPrompt,
-        historicalPrompt: analysisResult.historicalPrompt,
-        immersivePrompt: analysisResult.immersivePrompt,
-        emotions: extractEmotions(analysisResult.immersivePrompt, mode),
-        audioUri: analysisResult.audioUri,
-        analysisId: undefined,
-      };
-
-      console.log(`⚠️  ${mode} analysis complete but NOT saved to database`);
-      return result;
+    // Step 2: Save to database (only if not from cache)
+    let analysisId: string | undefined;
+    
+    if (analysisResult.fromCache) {
+      console.log('📋 Data retrieved from cache - skipping database save to avoid duplicates');
+      analysisId = undefined; // No new ID since it's cached data
+    } else {
+      console.log('💾 Saving new analysis to database...');
+      try {
+        const savedData = await ArtBeyondSightAPI.saveAnalysis(analysisResult);
+        console.log('✅ Successfully saved to database with ID:', savedData.id);
+        analysisId = savedData.id;
+      } catch (dbError) {
+        console.error('❌ Database save failed:', dbError);
+        console.log('⚠️  Continuing without database save - data will not be in history');
+        analysisId = undefined;
+      }
     }
+
+    // Step 3: Format for ResultScreen
+    const result: AnalyzeImageResult = {
+      imageUri: analysisResult.imageUri,
+      title: analysisResult.name,
+      artist: analysisResult.creator,
+      type: analysisResult.category,
+      description: analysisResult.historicalPrompt,
+      historicalPrompt: analysisResult.historicalPrompt,
+      immersivePrompt: analysisResult.immersivePrompt,
+      emotions: extractEmotions(analysisResult.immersivePrompt, mode),
+      audioUri: analysisResult.audioUri,
+      analysisId: analysisId,
+    };
+
+    const statusMessage = analysisResult.fromCache 
+      ? `✅ ${mode} analysis complete (retrieved from cache)!`
+      : `✅ ${mode} analysis complete and saved!`;
+    console.log(statusMessage);
+    
+    return result;
 
   } catch (error) {
     console.error(`❌ ${mode} mode analysis failed:`, error);

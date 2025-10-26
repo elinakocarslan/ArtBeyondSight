@@ -123,6 +123,32 @@ export default function ResultScreen() {
     // TODO: persist to local storage or cloud
   };
 
+  const onBackToHome = async () => {
+    try {
+      // Stop any playing music
+      if (sound && typeof sound.unloadAsync === 'function') {
+        await sound.unloadAsync();
+        setSound(null);
+        setIsPlayingMusic(false);
+      }
+
+      // Stop any Unreal Speech audio
+      await stopUnrealSpeech();
+      setIsPlayingHistorical(false);
+      setIsPlayingImmersive(false);
+
+      // Stop default speech synthesis
+      Speech.stop();
+
+      // Navigate back to home
+      router.replace('/');
+    } catch (error) {
+      console.warn('Error stopping audio:', error);
+      // Navigate anyway even if audio stopping fails
+      router.replace('/');
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container} accessible accessibilityRole="summary">
       <View style={styles.headerCard}>
@@ -237,7 +263,7 @@ export default function ResultScreen() {
             <Text style={styles.actionText}>Save</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButtonOutline} accessibilityRole="button" onPress={() => router.replace('/')}>
+          <TouchableOpacity style={styles.actionButtonOutline} accessibilityRole="button" onPress={onBackToHome}>
             <Text style={styles.actionTextOutline}>Back to Home</Text>
           </TouchableOpacity>
         </View>

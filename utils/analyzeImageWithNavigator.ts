@@ -550,7 +550,7 @@
 // utils/analyzeImageWithNavigator.ts
 // Updated to support Museum, Monument, and Landscape modes
 
-import * as FileSystem from 'expo-file-system';
+import { ArtBeyondSightAPI } from './api';
 
 // ============= TYPE DEFINITIONS =============
 interface ChatCompletionResponse {
@@ -613,6 +613,7 @@ export interface AnalysisResult {
   audioUri: string | null;
   imageUri: string;
   mode: 'museum' | 'monuments' | 'landscape';
+  fromCache?: boolean;    // Indicates if data was retrieved from cache
 }
 
 // Legacy type for backwards compatibility
@@ -620,7 +621,7 @@ export type MuseumAnalysisResult = AnalysisResult;
 
 // ============= API CONFIGURATION =============
 const NAVIGATOR_API_KEY = 'sk-SwCA-nMn6Z1Zz1F0UXDzgQ';
-const SUNO_API_KEY = '4acad3fb927c19ca28eadf14383da5e7';
+const SUNO_API_KEY = '70630a0da6baaa463a88c02c946ad25a';
 const NAVIGATOR_BASE_URL = 'https://api.ai.it.ufl.edu/v1/';
 const SUNO_BASE_URL = 'https://api.sunoapi.org';
 const MODEL = 'mistral-small-3.1';
@@ -1048,6 +1049,114 @@ async function pollSunoTaskStatus(taskId: string): Promise<string | null> {
 // ============= MAIN EXPORTS =============
 
 /**
+ * Check if an analysis with the given name already exists in database
+ */
+async function checkExistingAnalysis(
+  artworkName: string, 
+  mode: 'museum' | 'monuments' | 'landscape',
+  imageUri: string
+): Promise<AnalysisResult | null> {
+  try {
+    console.log(`🔍 Checking database for existing analysis of "${artworkName}"...`);
+    
+    const existingAnalyses = await ArtBeyondSightAPI.searchAnalysesByName(artworkName);
+    
+    if (existingAnalyses && existingAnalyses.length > 0) {
+      const existing = existingAnalyses[0]; // Take the first match
+      console.log(`✅ Found existing analysis for "${artworkName}" in database!`);
+      console.log(`📋 Returning cached data instead of making new API calls`);
+      
+      // Convert database format to AnalysisResult format
+      const cachedResult: AnalysisResult = {
+        paintingName: existing.image_name,
+        name: existing.image_name,
+        creator: existing.metadata.artist || existing.metadata.creator || (mode === 'museum' ? 'Unknown Artist' : mode === 'monuments' ? 'Unknown' : 'Nature'),
+        category: existing.metadata.genre || existing.metadata.category || `Unknown ${mode === 'museum' ? 'Genre' : 'Type'}`,
+        historicalPrompt: existing.metadata.historicalPrompt || existing.descriptions[0] || '',
+        immersivePrompt: existing.metadata.immersivePrompt || existing.descriptions[1] || '',
+        audioUri: existing.metadata.audioUri || null,
+        imageUri: imageUri, // Use current image URI
+        mode: mode,
+        fromCache: true, // Mark as cached data
+      };
+      
+      return cachedResult;
+    }
+    
+    console.log(`❌ No existing analysis found for "${artworkName}". Proceeding with full analysis...`);
+    return null;
+    
+  } catch (error) {
+    console.warn(`⚠️ Error checking existing analysis for "${artworkName}":`, error);
+    console.log(`📊 Proceeding with full analysis due to database check error`);
+    return null;
+  }
+}
+
+/**
+ * Get quick artwork name from image for database lookup
+ */
+async function getQuickArtworkName(
+  imageUri: string,
+  mode: 'museum' | 'monuments' | 'landscape'
+): Promise<string | null> {
+  try {
+    console.log(`🔍 Getting quick ${mode} name for database lookup...`);
+    const base64Image = await convertImageToBase64(imageUri);
+    const imageDataUrl = `data:image/jpeg;base64,${base64Image}`;
+    
+    const quickPrompt = `You are an expert art analyst. Look at this image and identify what it shows.
+    
+    Respond ONLY with a JSON object in this exact format:
+    {"name": "exact name of the artwork/monument/landscape"}
+    
+    For famous works, use the widely recognized name (e.g., "Mona Lisa", "Starry Night", "The Scream").
+    For unknown works, use "Unknown Artwork/Monument/Landscape".
+    
+    Be precise and concise with the name.`;
+
+    const response = await fetch(NAVIGATOR_BASE_URL + 'chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${NAVIGATOR_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: quickPrompt },
+              { type: 'image_url', image_url: { url: imageDataUrl } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get quick ${mode} name`);
+    }
+
+    const data: ChatCompletionResponse = await response.json();
+    const content = data.choices[0]?.message?.content || '';
+    
+    try {
+      const parsed = JSON.parse(content);
+      return parsed.name || null;
+    } catch {
+      // If parsing fails, try to extract name from plain text
+      return content.trim() || null;
+    }
+    
+  } catch (error) {
+    console.warn(`⚠️ Error getting quick ${mode} name:`, error);
+    return null;
+  }
+}
+
+/**
  * Analyze any image (museum, monument, or landscape)
  */
 export async function analyzeImage(
@@ -1058,13 +1167,24 @@ export async function analyzeImage(
     console.log(`🚀 Starting complete ${mode} image analysis...`);
     console.log('Image URI:', imageUri);
 
-    // Step 1-4: Analyze with Navigator AI
+    // Step 0: Quick check for existing analysis in database
+    const quickName = await getQuickArtworkName(imageUri, mode);
+    if (quickName && quickName !== `Unknown ${mode === 'museum' ? 'Artwork' : mode === 'monuments' ? 'Monument' : 'Landscape'}`) {
+      const existingAnalysis = await checkExistingAnalysis(quickName, mode, imageUri);
+      if (existingAnalysis) {
+        return existingAnalysis;
+      }
+    }
+
+    // Step 1-4: Analyze with Navigator AI (only if not in database)
+    console.log(`📊 No cached data found. Proceeding with full analysis...`);
     const analysis = await analyzeWithNavigator(imageUri, mode);
 
     // Step 5-6: Generate music with Suno API
     const audioUri = await generateMusicWithSuno(analysis.immersivePrompt, mode);
 
     const result: AnalysisResult = {
+      paintingName: analysis.name, // Add the missing paintingName field
       name: analysis.name,
       creator: analysis.creator,
       category: analysis.category,

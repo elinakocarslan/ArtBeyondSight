@@ -301,7 +301,7 @@ const getApiBaseUrl = () => {
     if (Platform.OS === 'android') {
       return 'http://10.0.2.2:8000';
     }
-    return 'http://100.70.109.21:8000';
+    return 'http://10.136.254.22:8000';
   }
 
   return PRODUCTION_URL;
