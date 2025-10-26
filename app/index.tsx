@@ -1,4 +1,6 @@
 import ModeButton from '@/components/mode-button';
+import VOPressable from '@/components/vo-pressable';
+import { MaterialIcons } from '@expo/vector-icons';
 // decorative icons removed from this screen
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -32,10 +34,19 @@ export default function Home() {
         <Text style={[styles.title, { fontSize: titleSize }]} accessibilityRole="header">ArtBeyondSight</Text>
         <Text style={styles.subtitle}>Turning Art into Music</Text>
 
-        <View style={styles.taglineRow} pointerEvents="none">
-          <Text style={styles.taglineIcon}>♪</Text>
-          <Text style={styles.taglineText}>Accessible • Inclusive • Immersive</Text>
-        </View>
+        {/* tagline removed per request */}
+
+        <VOPressable
+          accessibilityLabel="Open accessibility settings"
+          accessibilityHint="Opens the accessibility settings screen to adjust TTS and haptics"
+          containerStyle={styles.settingsButton}
+          onPress={() => router.push('/settings')}
+        >
+          <View style={styles.settingsInner}>
+            <MaterialIcons name="settings" size={18} color="#0b1220" />
+            <Text style={styles.settingsText}>Accessibility Settings</Text>
+          </View>
+        </VOPressable>
 
   <View style={[styles.rowTop, cols === 1 ? styles.colStack : null]}>
           <ModeButton
@@ -97,10 +108,20 @@ const styles = StyleSheet.create({
   glowRight: { position: 'absolute', width: 320, height: 320, borderRadius: 160, backgroundColor: 'rgba(5,150,105,0.10)', right: -100, top: -80 },
   title: { fontSize: 34, fontWeight: '800', color: '#dbe9ff', marginTop: 8 },
   subtitle: { fontSize: 16, color: '#cbd6e6', marginBottom: 20, textAlign: 'center' },
-  taglineRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 18, gap: 8 },
-  taglineIcon: { color: '#d6b3ff', fontSize: 18, marginRight: 6 },
-  taglineText: { color: '#d6b3ff', fontSize: 16 },
+  // tagline removed
   row: { flexDirection: 'row' },
   rowCenter: { flexDirection: 'row', justifyContent: 'center' },
   // history button removed
+  settingsButton: {
+    width: '92%',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
+  settingsInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  settingsText: { marginLeft: 8, color: '#0b1220', fontSize: 15, fontWeight: '600' },
 });

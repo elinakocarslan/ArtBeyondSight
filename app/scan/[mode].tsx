@@ -1,17 +1,18 @@
 // app/scan/[mode].tsx
+import { announceOrSpeak } from '@/app/accessibility';
 import { analyzeImage } from '@/utils/analyzeImage';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator, 
-    Alert,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function ScanScreen() {
@@ -22,6 +23,22 @@ export default function ScanScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
+
+  // Announce when entering the mode
+  useEffect(() => {
+    const modeNames: Record<typeof mode, string> = {
+      museum: 'Museum Mode',
+      monuments: 'Monuments Mode',
+      landscape: 'Landscape Mode'
+    };
+    const modeName = modeNames[mode];
+    // Small delay to ensure settings are loaded and screen is mounted
+    const timer = setTimeout(() => {
+      announceOrSpeak(`You are now in ${modeName}. Upload or take a photo of artwork to begin.`);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [mode]);
 
   // no pulsing animation — simplified capture UI
 
@@ -72,36 +89,49 @@ export default function ScanScreen() {
       
       if (mode === 'museum') {
         // Museum mode has multiple steps
-        setProgressMessage('Converting image...');
+        const msg1 = 'Converting image...';
+        setProgressMessage(msg1);
+        announceOrSpeak(msg1);
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        setProgressMessage('Getting painting metadata...');
+        const msg2 = 'Getting painting metadata...';
+        setProgressMessage(msg2);
+        announceOrSpeak(msg2);
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        setProgressMessage('Analyzing historical context...');
+        const msg3 = 'Analyzing historical context...';
+        setProgressMessage(msg3);
+        announceOrSpeak(msg3);
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        setProgressMessage('Creating immersive description...');
+        const msg4 = 'Creating immersive description...';
+        setProgressMessage(msg4);
+        announceOrSpeak(msg4);
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        setProgressMessage('Generating music (this may take 1-2 minutes)...');
+        const msg5 = 'Generating music, this may take 1 to 2 minutes...';
+        setProgressMessage(msg5);
+        announceOrSpeak(msg5);
       } else {
-        setProgressMessage('Analyzing image...');
+        const msg = 'Analyzing image...';
+        setProgressMessage(msg);
+        announceOrSpeak(msg);
       }
       
       const result = await analyzeImage(imageUri, mode);
       
-      setProgressMessage('Analysis complete!');
+      const completeMsg = 'Image analysis complete!';
+      setProgressMessage(completeMsg);
+      announceOrSpeak(completeMsg);
       await new Promise(resolve => setTimeout(resolve, 500));
       
       router.push({ pathname: '/result', params: { ...result, mode } } as any);
       
     } catch (error) {
       console.error('Analysis error:', error);
-      Alert.alert(
-        'Analysis Failed', 
-        error instanceof Error ? error.message : 'Failed to analyze image. Please try again.'
-      );
+      const errorMsg = error instanceof Error ? error.message : 'Failed to analyze image. Please try again.';
+      announceOrSpeak(`Error: ${errorMsg}`);
+      Alert.alert('Analysis Failed', errorMsg);
     } finally {
       setIsProcessing(false);
       setProgressMessage('');
@@ -141,7 +171,7 @@ export default function ScanScreen() {
             )}
             {mode === 'museum' && progressMessage.includes('music') && (
               <Text style={styles.loaderSubtext}>
-                Generating unique music based on the artwork's mood...
+                Generating unique music based on the artwork&apos;s mood...
               </Text>
             )}
           </View>

@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import VOPressable from './vo-pressable';
 
 type Props = {
   label: string;
@@ -15,12 +16,12 @@ type Props = {
 
 export default function ModeButton({ label, subtitle, color, iconName = 'photo', onPress, accessibilityLabel, style, iconSize }: Props) {
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
+    <VOPressable
       accessibilityLabel={accessibilityLabel ?? label}
-      activeOpacity={0.8}
+      accessibilityHint={subtitle}
+      detailedDescription={subtitle}
+      containerStyle={[styles.container, { backgroundColor: color }, style]}
       onPress={onPress}
-      style={[styles.container, { backgroundColor: color }, style]}
     >
       {/* subtle overlay to simulate a glossy gradient without adding dependencies */}
       <View style={styles.surfaceOverlay} pointerEvents="none" />
@@ -40,7 +41,7 @@ export default function ModeButton({ label, subtitle, color, iconName = 'photo',
           <View style={[styles.dot, { backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 18 }]} />
         </View>
       </View>
-    </TouchableOpacity>
+    </VOPressable>
   );
 }
 
