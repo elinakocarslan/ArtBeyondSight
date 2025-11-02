@@ -16,8 +16,8 @@ We created a mobile app that allows users — regardless of background or abilit
 By turning images into melodies and spoken descriptions, we let everyone connect with art on a deeper emotional and sensory level.
 
 > Because art isn’t just something to look at — it’s something to feel.
-More Description: https://www.hackathonparty.com/hackathons/26/projects/361
-Demo Link: https://www.youtube.com/watch?v=qBoSwC7vGdo&t=304s
+> More Description: https://www.hackathonparty.com/hackathons/26/projects/361
+> Demo Link: https://www.youtube.com/watch?v=qBoSwC7vGdo&t=304s
 ---
 
 ## 📱 Overview
