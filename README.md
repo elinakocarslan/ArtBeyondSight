@@ -1,6 +1,4 @@
 # 🎨 Art Beyond Sight
-https://www.hackathonparty.com/hackathons/26/projects/361
-youtube.com/watch?time_continue=304&v=qBoSwC7vGdo&embeds_referring_euri=https%3A%2F%2Fwww.hackathonparty.com%2F&embeds_referring_origin=https%3A%2F%2Fwww.hackathonparty.com&source_ve_path=MzY4NDIsMjg2NjY
 > 
 > **Art is for everyone and everything is art.**  
 > *Art Beyond Sight* redefines how we experience art by transforming images, from paintings and monuments to everyday scenes — into **immersive auditory and descriptive journeys**.
@@ -18,7 +16,8 @@ We created a mobile app that allows users — regardless of background or abilit
 By turning images into melodies and spoken descriptions, we let everyone connect with art on a deeper emotional and sensory level.
 
 > Because art isn’t just something to look at — it’s something to feel.
-
+More Description: https://www.hackathonparty.com/hackathons/26/projects/361
+Demo Link: https://www.youtube.com/watch?v=qBoSwC7vGdo&t=304s
 ---
 
 ## 📱 Overview
